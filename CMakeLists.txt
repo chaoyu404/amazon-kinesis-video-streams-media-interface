@@ -59,23 +59,27 @@ target_link_libraries(embedded-media-static PRIVATE ${BOARD_LIBS_STATIC})
 set_target_properties(embedded-media-static PROPERTIES PUBLIC_HEADER "${INCS}")
 set_target_properties(embedded-media-static PROPERTIES OUTPUT_NAME embedded-media)
 
-add_library(embedded-media-shared SHARED ${SRCS} ${BOARD_SRCS})
-if(BOARD_BUILD_DEPENDS AND NOT (BOARD_BUILD_DEPENDS STREQUAL ""))
-    add_dependencies(embedded-media-shared ${BOARD_BUILD_DEPENDS})
+if (NOT ${WASM_BUILD})
+    add_library(embedded-media-shared SHARED ${SRCS} ${BOARD_SRCS})
+    if(BOARD_BUILD_DEPENDS AND NOT (BOARD_BUILD_DEPENDS STREQUAL ""))
+        add_dependencies(embedded-media-shared ${BOARD_BUILD_DEPENDS})
+    endif()
+    target_include_directories(embedded-media-shared PRIVATE ${BOARD_INCS_DIR})
+    target_include_directories(embedded-media-shared PUBLIC ${INCS_DIR})
+    target_link_directories(embedded-media-shared PUBLIC ${BOARD_LIBS_DIR})
+    target_link_libraries(embedded-media-shared PRIVATE ${BOARD_LIBS_SHARED})
+    set_target_properties(embedded-media-shared PROPERTIES PUBLIC_HEADER "${INCS}")
+    set_target_properties(embedded-media-shared PROPERTIES OUTPUT_NAME embedded-media)
 endif()
-target_include_directories(embedded-media-shared PRIVATE ${BOARD_INCS_DIR})
-target_include_directories(embedded-media-shared PUBLIC ${INCS_DIR})
-target_link_directories(embedded-media-shared PUBLIC ${BOARD_LIBS_DIR})
-target_link_libraries(embedded-media-shared PRIVATE ${BOARD_LIBS_SHARED})
-set_target_properties(embedded-media-shared PROPERTIES PUBLIC_HEADER "${INCS}")
-set_target_properties(embedded-media-shared PROPERTIES OUTPUT_NAME embedded-media)
 
 if(NOT FRAME_FILE_PATH_PREFIX OR FRAME_FILE_PATH_PREFIX STREQUAL "")
     set(FRAME_FILE_PATH_PREFIX ${CMAKE_CURRENT_LIST_DIR}/resources/frames/)
     message(STATUS "FRAME_FILE_PATH_PREFIX is ${FRAME_FILE_PATH_PREFIX}")
 endif()
 target_compile_definitions(embedded-media-static PRIVATE "FRAME_FILE_PATH_PREFIX=\"${FRAME_FILE_PATH_PREFIX}\"")
-target_compile_definitions(embedded-media-shared PRIVATE "FRAME_FILE_PATH_PREFIX=\"${FRAME_FILE_PATH_PREFIX}\"")
+if (NOT ${WASM_BUILD})
+    target_compile_definitions(embedded-media-shared PRIVATE "FRAME_FILE_PATH_PREFIX=\"${FRAME_FILE_PATH_PREFIX}\"")
+endif()
 
 include(GNUInstallDirs)
 
@@ -83,9 +87,12 @@ install(TARGETS embedded-media-static
         LIBRARY DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR})
 
-install(TARGETS embedded-media-shared
-        LIBRARY DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}
-        ARCHIVE DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR})
+if (NOT ${WASM_BUILD})
+    install(TARGETS embedded-media-shared
+            LIBRARY DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR}
+            ARCHIVE DESTINATION ${CMAKE_INSTALL_FULL_LIBDIR})
+endif()
+
 
 install(DIRECTORY ${INCS_DIR}
         DESTINATION ${CMAKE_INSTALL_FULL_INCLUDEDIR})
